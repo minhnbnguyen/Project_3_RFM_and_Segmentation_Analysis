@@ -95,29 +95,30 @@ DELETE FROM sales_dataset_rfm_prj
 WHERE quantityordered IN (SELECT quantityordered FROM outlier);
 
 -- Begin Analysis
--- Which month has the highest revenue?
+-- Which month has the highest revenue? -> November
 SELECT
 	month_id,
-	SUM (sales) AS revenue,
-	ordernumber AS order_number
+	SUM (sales) AS revenue
 FROM
 	sales_dataset_rfm_prj
 GROUP BY
-	month_id, ordernumber
--- Which productline has the most sales in november?
+	month_id
+ORDER BY
+	month_id;
+-- Which productline has the most sales in november? -> Cars
 SELECT
 	month_id,
 	SUM (sales) AS revenue,
-	ordernumber AS order_number
+	productline AS productline
 FROM
 	sales_dataset_rfm_prj
 WHERE
 	month_id = 11
 GROUP BY
-	month_id, ordernumber
+	month_id, productline
 ORDER BY
-	SUM (sales) DESC
--- Revenue of each productline, year and dealsize
+	SUM (sales) DESC;
+-- Revenue of each productline, year and dealsize -> Classic cars on top of 3 years consecutively
 SELECT
 	productline, year_id, dealsize,
 	SUM (sales) AS revenue
@@ -125,7 +126,9 @@ FROM
 	sales_dataset_rfm_prj
 GROUP BY
 	productline, year_id, dealsize
--- Which product has the highes revenue in the UK each year
+ORDER BY
+	year_id, productline, dealsize;
+-- Which product has the highest revenue in the UK each year --> Planes, trains and motorcycles
 SELECT
 	*
 FROM
@@ -145,8 +148,30 @@ FROM
 		year_id, productline, country)
 	ORDER BY
 		RANK () OVER (PARTITION BY year_id, productline ORDER BY revenue))
+WHERE
+	RANK = 1
+-- Which product has the highest revenue in the US each year --> Trains
+SELECT
+	*
+FROM
+(
+	SELECT
+	*,
+	DENSE_RANK () OVER (PARTITION BY year_id ORDER BY revenue) AS RANK
+	FROM
+	(
+	SELECT
+		year_id, productline, SUM (sales) AS revenue
+	FROM
+		sales_dataset_rfm_prj
 	WHERE
-		RANK = 1
+		country = 'USA'
+	GROUP BY
+		year_id, productline, country)
+	ORDER BY
+		RANK () OVER (PARTITION BY year_id, productline ORDER BY revenue))
+WHERE
+	RANK = 1;
 -- Who is the best customer according to RFM
 -- Input segmentation score table
 CREATE TABLE segment_score
